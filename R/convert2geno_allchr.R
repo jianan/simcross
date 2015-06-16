@@ -4,7 +4,7 @@
 #' Wrap up of convert2geno to adequate multiple chromosomes.
 #'
 #' @param xodat The sort of detailed genotype/crossover data generated
-#' by \code{\link{sim_from_pedigree_wholechr}}
+#' by \code{\link{sim_from_pedigree_allchr}}
 #' @param map marker locations, a list with elements for each
 #' chromosome
 #' @param id ids for which individuals genotypes is desired
@@ -16,13 +16,13 @@
 #' @param shift_map If TRUE, shift genetic map to start at 0
 #' @param return.matrix If FALSE, the result is a list of length
 #' \code{n_chrs}, otherwise it is converted into a matrix if size
-#' \code{length(id)} x \code{n_markers}. 
-#' 
+#' \code{length(id)} x \code{n_markers}.
+#'
 #' @return If \code{founder_geno} is provided or there are just two
 #' founders, the result is a numeric matrix of genotypes, individuals
 #' x markers, with genotypes 1/2/3 codes for 11/12/22 genotypes. If
 #' there are more than two founders and \code{founder_geno} are
-#' letters, the result is a character matrix, too. 
+#' letters, the result is a character matrix, too.
 #'
 #' If \code{founder_geno} is not provided and there are more than two
 #' founders, the result is a 3-dimensional array, individuals x
@@ -32,25 +32,26 @@
 #' @export
 #' @keywords utilities
 #' @seealso \code{\link{convert2geno}}
-#' 
+#'
 #' @examples
+#' library(qtl)
 #' # marker map
 #' map <- sim.map(len=rep(100, 19), n.mar=10, include.x=FALSE)
 #' # simulate AIL pedigree
 #' tab <- sim_ail_pedigree(12, 30)
 #' # simulate data from that pedigree
-#' dat <- sim_from_pedigree_wholechr(tab, map)
+#' dat <- sim_from_pedigree_allchr(tab, map)
 #' names(map) <- paste0("marker", seq(along=map))
 #' # convert data to marker genotypes
 #' id <- which(tab[, "gen"]==12)
-#' geno <- convert2geno_wholechr(dat, map, id)
+#' geno <- convert2geno_allchr(dat, map, id)
 #'
-convert2geno_wholechr <- function(xodat, map, id, f.geno,
+convert2geno_allchr <- function(xodat, map, id, f.geno,
                                   return.matrix=TRUE, shift_map=FALSE){
-  
+
   stopifnot(length(map) == length(xodat))
   if(missing(id)) id <- 1:length(xodat[[1]])
-  
+
   if(missing(f.geno)){
     geno <- NULL
     for(chr in 1:length(map)){
@@ -64,11 +65,11 @@ convert2geno_wholechr <- function(xodat, map, id, f.geno,
       ## check that f.geno is a list of same length as map
       stopifnot(length(f.geno)==length(map))
     }else{  ## f.geno is a matrix.
-      nm.chr <- nmar(map)
+      nm.chr <- sapply(map, length)
       nm.map <- sum(nm.chr)
       nm <- nrow(f.geno)
       if(nm.map!=nm) stop("f.geno should have ", nm.map, " columns but has ", nm)
-      
+
       f.geno <- cbind(f.geno, f.geno)
       f.geno.list <- list()
       for(chr in 1:length(map)){
@@ -86,7 +87,7 @@ convert2geno_wholechr <- function(xodat, map, id, f.geno,
     }
     names(geno) <- names(map)
   }
-  
+
   if(!return.matrix){ ## return the list directly
     return(geno)
   }else{ ## cbind all elememts to make a matrix.

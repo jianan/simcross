@@ -7,8 +7,11 @@
 #' @param pedigree Matrix describing a pedigree, with first four
 #' columns being individual ID, mom ID, dad ID, and sex (female as
 #' \code{0}, male as \code{1}).
-#' @param L Length of chromosome in cM.
-#' @param xchr If TRUE, simulate X chromosome.
+#' @param L Length of chromosome in cM (or a vector of chromosome lengths)
+#' @param xchr If TRUE, simulate X chromosome. (If \code{L} is a
+#' vector, this should be a vector of TRUE/FALSE values, of the same
+#' length as \code{L}, or a character string with the name of the X
+#' chromosome, in \code{L}.)
 #' @param m Crossover interference parameter, for chi-square model
 #' (m=0 corresponds to no interference).
 #' @param p proption of crossovers coming from no-interference process
@@ -24,6 +27,11 @@
 #' right-endpoints of those intervals; these two vectors should have
 #' the same length.
 #'
+#' If the input \code{L} is a vector, in order to simulate multiple
+#' chromosomes at once, then the output will be a list with length
+#' \code{length(L)}, each component being a chromosome and having the
+#' form described above.
+#'
 #' @export
 #' @keywords datagen
 #' @seealso \code{\link{check_pedigree}},
@@ -35,9 +43,34 @@
 #' tab <- sim_ail_pedigree(12, 30)
 #' # simulate data from that pedigree
 #' dat <- sim_from_pedigree(tab)
+#' # simulate multiple chromosomes
+#' dat <- sim_from_pedigree(tab, c("1"=100, "2"=75, "X"=100), xchr="X")
 sim_from_pedigree <-
-function(pedigree, L=100, xchr=FALSE, m=10, p=0, obligate_chiasma=FALSE)
+    function(pedigree, L=100, xchr=FALSE, m=10, p=0, obligate_chiasma=FALSE)
 {
+    if(length(L) > 1) { # multiple chromosomes
+        result <- vector("list", length(L))
+        if(is.null(names(L))) names(L) <- seq(along=L)
+        names(result) <- names(L)
+
+        if(is.character(xchr)) # xchr is chromosome names
+            xchr <- names(L) %in% xchr
+
+        if(is.null(xchr))
+            xchr <- rep(FALSE, length(L))
+
+        if(length(xchr) == 1) # if single value, apply to all chromosomes
+            xchr <- rep(xchr, length(L))
+
+        if(length(xchr) != length(L))
+            stop("length(xchr) != length(L)")
+
+        for(i in seq(along=L))
+            result[[i]] <- sim_from_pedigree(pedigree, L[i], xchr[i],
+                                             m, p, obligate_chiasma)
+        return(result)
+    }
+
     if(length(unique(pedigree[,1])) != nrow(pedigree))
         stop("IDs must be unique")
     rownames(pedigree) <- pedigree[,1]
